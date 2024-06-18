@@ -18,8 +18,8 @@ package io.jmix.search;
 
 import io.jmix.core.Resources;
 import io.jmix.search.index.IndexSchemaManagementStrategy;
+import io.jmix.search.index.RefreshPolicy;
 import org.apache.commons.lang3.StringUtils;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -80,15 +80,8 @@ public class SearchProperties {
      */
     protected final boolean enqueueIndexAllOnStartupIndexRecreationEnabled;
 
-    /**
-     * Whether the Rest High Level Client should be able to communicate with Elasticsearch version 8.x.
-     * Note that when compatibility mode is enabled, the Rest High Level Client not able to communicate
-     * with Elasticsearch version lower than 7.11.
-     */
-    protected final boolean restHighLevelClientApiCompatibilityModeEnabled;
 
-
-    protected final Elasticsearch elasticsearch;
+    protected final Server server;
 
     /**
      * Name of default search strategy
@@ -132,14 +125,13 @@ public class SearchProperties {
             @DefaultValue("true") boolean useDefaultIndexingQueueProcessingQuartzConfiguration,
             @DefaultValue("true") boolean useDefaultEnqueueingSessionProcessingQuartzConfiguration,
             @DefaultValue("true") boolean enqueueIndexAllOnStartupIndexRecreationEnabled,
-            @DefaultValue("true") boolean restHighLevelClientApiCompatibilityModeEnabled,
             @DefaultValue("") String enqueueIndexAllOnStartupIndexRecreationEntities,
             @DefaultValue("search_index_") String searchIndexNamePrefix,
             @DefaultValue("anyTermAnyField") String defaultSearchStrategy,
             @DefaultValue("create-or-recreate") String indexSchemaManagementStrategy,
             @DefaultValue("0/5 * * * * ?") String indexingQueueProcessingCron,
             @DefaultValue("0/5 * * * * ?") String enqueueingSessionProcessingCron,
-            @DefaultValue Elasticsearch elasticsearch) {
+            @DefaultValue Server server) {
         this.searchResultPageSize = searchResultPageSize;
         this.maxSearchPageCount = maxSearchPageCount;
         this.searchReloadEntitiesBatchSize = searchReloadEntitiesBatchSize;
@@ -152,9 +144,8 @@ public class SearchProperties {
         this.enqueueingSessionProcessingCron = enqueueingSessionProcessingCron;
         this.defaultSearchStrategy = defaultSearchStrategy;
         this.indexSchemaManagementStrategy = IndexSchemaManagementStrategy.getByKey(indexSchemaManagementStrategy);
-        this.elasticsearch = elasticsearch;
+        this.server = server;
         this.enqueueIndexAllOnStartupIndexRecreationEnabled = enqueueIndexAllOnStartupIndexRecreationEnabled;
-        this.restHighLevelClientApiCompatibilityModeEnabled = restHighLevelClientApiCompatibilityModeEnabled;
         this.enqueueIndexAllOnStartupIndexRecreationEntities = prepareStartupEnqueueingEntities(enqueueIndexAllOnStartupIndexRecreationEntities);
         this.searchIndexNamePrefix = searchIndexNamePrefix;
     }
@@ -244,13 +235,6 @@ public class SearchProperties {
     }
 
     /**
-     * @see #restHighLevelClientApiCompatibilityModeEnabled
-     */
-    public boolean isRestHighLevelClientApiCompatibilityModeEnabled() {
-        return restHighLevelClientApiCompatibilityModeEnabled;
-    }
-
-    /**
      * @see #enqueueIndexAllOnStartupIndexRecreationEntities
      */
     public List<String> getEnqueueIndexAllOnStartupIndexRecreationEntities() {
@@ -265,59 +249,59 @@ public class SearchProperties {
     }
 
     /**
-     * @see Elasticsearch#url
+     * @see Server#url
      */
-    public String getElasticsearchUrl() {
-        return elasticsearch.url;
+    public String getServerUrl() {
+        return server.url;
     }
 
     /**
-     * @see Elasticsearch#login
+     * @see Server#login
      */
-    public String getElasticsearchLogin() {
-        return elasticsearch.login;
+    public String getServerLogin() {
+        return server.login;
     }
 
     /**
-     * @see Elasticsearch#password
+     * @see Server#password
      */
-    public String getElasticsearchPassword() {
-        return elasticsearch.password;
+    public String getServerPassword() {
+        return server.password;
     }
 
     /**
      * @see SSL#certificateLocation
      */
-    public String getElasticsearchSslCertificateLocation() {
-        return elasticsearch.ssl.certificateLocation;
+    public String getServerSslCertificateLocation() {
+        return server.ssl.certificateLocation;
     }
 
     /**
      * @see SSL#certificateAlias
      */
-    public String getElasticsearchSslCertificateAlias() {
-        return elasticsearch.ssl.certificateAlias;
+    public String getServerSslCertificateAlias() {
+        return server.ssl.certificateAlias;
     }
 
     /**
      * @see SSL#certificateFactoryType
      */
-    public String getElasticsearchSslCertificateFactoryType() {
-        return elasticsearch.ssl.certificateFactoryType;
+    public String getServerSslCertificateFactoryType() {
+        return server.ssl.certificateFactoryType;
     }
 
     /**
      * @see SSL#keyStoreType
      */
-    public String getElasticsearchSslKeyStoreType() {
-        return elasticsearch.ssl.keyStoreType;
+    public String getServerSslKeyStoreType() {
+        return server.ssl.keyStoreType;
     }
 
     /**
-     * @see Elasticsearch#bulkRequestRefreshPolicy
+     * @see Server#bulkRequestRefreshPolicy
      */
-    public RefreshPolicy getElasticsearchBulkRequestRefreshPolicy() {
-        return elasticsearch.bulkRequestRefreshPolicy;
+    public RefreshPolicy getBulkRequestRefreshPolicy() {
+        return server.bulkRequestRefreshPolicy;
     }
 
     /**
@@ -337,36 +321,36 @@ public class SearchProperties {
         return result;
     }
 
-    protected static class Elasticsearch {
+    public static class Server {
 
         /**
-         * Elasticsearch URL.
+         * URL.
          */
         protected final String url;
 
         /**
-         * Elasticsearch login for common base authentication.
+         * Login for basic authentication.
          */
         protected final String login;
 
         /**
-         * Elasticsearch password for common base authentication.
+         * Password for basic authentication.
          */
         protected final String password;
 
         protected final SSL ssl;
 
         /**
-         * Refresh policy that should be used with bulk requests to Elasticsearch: NONE (default), WAIT_UNTIL, IMMEDIATE
+         * RefreshPolicy policy that should be used with bulk requests to search platform: FALSE (default), TRUE, WAIT_FOR
          */
         protected final RefreshPolicy bulkRequestRefreshPolicy;
 
-        public Elasticsearch(
+        public Server(
                 @DefaultValue("localhost:9200") String url,
                 String login,
                 String password,
                 @DefaultValue SSL ssl,
-                @DefaultValue("NONE") String bulkRequestRefreshPolicy) {
+                @DefaultValue("FALSE") String bulkRequestRefreshPolicy) {
             this.url = url;
             this.login = login;
             this.password = password;
@@ -379,17 +363,17 @@ public class SearchProperties {
             try {
                 refreshPolicy = RefreshPolicy.valueOf(propertyValue);
             } catch (Exception e) {
-                refreshPolicy = RefreshPolicy.NONE;
+                refreshPolicy = RefreshPolicy.FALSE;
                 log.warn("Unknown refresh policy '{}'. Default one ('{}') will be used.", propertyValue, refreshPolicy);
             }
             return refreshPolicy;
         }
     }
 
-    protected static class SSL {
+    public static class SSL {
 
         /**
-         * Location of CA certificate for connection to Elasticsearch service. Location is handled according to the
+         * Location of CA certificate for connection to search platform service. Location is handled according to the
          * rules of {@link Resources}
          */
         protected final String certificateLocation;

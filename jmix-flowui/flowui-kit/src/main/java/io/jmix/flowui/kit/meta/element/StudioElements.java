@@ -20,6 +20,7 @@ import com.vaadin.flow.component.accordion.AccordionPanel;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.login.LoginI18n;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.component.tabs.Tab;
 import io.jmix.flowui.kit.component.dropdownbutton.DropdownButtonItem;
@@ -491,6 +492,8 @@ public interface StudioElements {
                     @StudioProperty(xmlAttribute = "flexGrow", type = StudioPropertyType.DOUBLE),
                     @StudioProperty(xmlAttribute = "id", type = StudioPropertyType.COMPONENT_ID, required = true),
                     @StudioProperty(xmlAttribute = "label", type = StudioPropertyType.LOCALIZED_STRING),
+                    @StudioProperty(xmlAttribute = "lazy", type = StudioPropertyType.BOOLEAN,
+                            defaultValue = "false"),
                     @StudioProperty(xmlAttribute = "themeNames", type = StudioPropertyType.VALUES_LIST,
                             options = {"icon-on-top"}),
                     @StudioProperty(xmlAttribute = "visible", type = StudioPropertyType.BOOLEAN,
@@ -510,6 +513,14 @@ public interface StudioElements {
             }
     )
     DropdownButtonItem textItem();
+
+    @StudioElement(
+            name = "Separator",
+            classFqn = "io.jmix.flowui.kit.component.stub.DropdownButtonStubSeparator",
+            xmlElement = "separator",
+            documentationLink = "%VERSION%/flow-ui/vc/components/dropdownButton.html#separator"
+    )
+    DropdownButtonItem separator();
 
     @StudioElement(
             name = "Tooltip",
@@ -1021,4 +1032,50 @@ public interface StudioElements {
                     "com.vaadin.flow.component.grid.contextmenu.GridMenuItem"}
     )
     void gridContextMenuSeparator();
+
+    @StudioElement(
+            name = "Content",
+            icon = "io/jmix/flowui/kit/meta/icon/view/layout.svg",
+            xmlElement = "content",
+            unlimitedCount = false,
+            visible = true,
+            target = {"io.jmix.flowui.fragment.Fragment"},
+            availableChildren = @StudioAvailableChildrenInfo(
+                    availableTags = {
+                            @StudioAvailableChildrenInfo.TagInfo(
+                                    qualifiedName = StudioAvailableChildrenInfo.ANY_TAG,
+                                    maxCount = 1000000L
+                            )
+                    }
+            )
+    )
+    VerticalLayout fragmentContent();
+
+    @StudioElement(
+            name = "Property",
+            classFqn = "io.jmix.flowui.kit.stub.StudioFragmentPropertyElement",
+            xmlElement = "property",
+            icon = "io/jmix/flowui/kit/meta/icon/element/property.svg",
+            properties = {
+                    @StudioProperty(xmlAttribute = "name", type = StudioPropertyType.STRING, required = true),
+                    @StudioProperty(xmlAttribute = "value", type = StudioPropertyType.STRING, required = true),
+                    @StudioProperty(xmlAttribute = "type", type = StudioPropertyType.ENUMERATION,
+                            options = {"CONTAINER_REF", "LOADER_REF", "ICON"})
+            }
+    )
+    void fragmentProperty();
+
+    @StudioElement(
+            name = "Property",
+            classFqn = "io.jmix.flowui.kit.stub.StudioGenericComponentPropertyElement",
+            icon = "io/jmix/flowui/kit/meta/icon/element/property.svg",
+            xmlElement = "property",
+            properties = {
+                    @StudioProperty(xmlAttribute = "name", type = StudioPropertyType.STRING, required = true),
+                    @StudioProperty(xmlAttribute = "value", type = StudioPropertyType.STRING, required = true),
+                    @StudioProperty(xmlAttribute = "type", type = StudioPropertyType.ENUMERATION,
+                            options = {"CONTAINER_REF", "LOADER_REF", "ICON"})
+            }
+    )
+    void genericComponentProperty();
 }

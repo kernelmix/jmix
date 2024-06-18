@@ -22,6 +22,7 @@ import com.vaadin.flow.component.page.ExtendedClientDetails;
 import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
+import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.server.InitParameters;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
@@ -30,6 +31,7 @@ import com.vaadin.flow.spring.SpringServlet;
 import com.vaadin.flow.spring.VaadinServletContextInitializer;
 import io.jmix.core.impl.scanning.AnnotationScanMetadataReaderFactory;
 import io.jmix.core.security.SystemAuthenticator;
+import io.jmix.flowui.UiProperties;
 import io.jmix.flowui.backgroundtask.BackgroundTaskManager;
 import io.jmix.flowui.sys.ViewControllersConfiguration;
 import io.jmix.flowui.sys.event.UiEventsManager;
@@ -37,9 +39,9 @@ import io.jmix.flowui.testassist.vaadin.TestServletContext;
 import io.jmix.flowui.testassist.vaadin.TestSpringServlet;
 import io.jmix.flowui.testassist.vaadin.TestVaadinRequest;
 import io.jmix.flowui.testassist.vaadin.TestVaadinSession;
-import io.jmix.flowui.view.View;
-import io.jmix.flowui.view.ViewInfo;
-import io.jmix.flowui.view.ViewRegistry;
+import io.jmix.flowui.testassist.view.initial.InitialView;
+import io.jmix.flowui.view.*;
+import io.jmix.flowui.view.navigation.ViewNavigationSupport;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.extension.*;
@@ -58,7 +60,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.reflect.FieldUtils.getDeclaredField;
 import static org.springframework.web.context.WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE;
@@ -106,6 +107,7 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
     protected UI ui;
 
     protected UiTestAuthenticator uiTestAuthenticator;
+    protected Class<? extends View> initialView;
 
     /**
      * @return view base packages or {@code null} if not set
@@ -150,10 +152,33 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         return this;
     }
 
+    /**
+     * @return initial view or {@code null} if not set
+     */
+    @Nullable
+    public Class<? extends View> getInitialView() {
+        return initialView;
+    }
+
+    /**
+     * Sets an initial view that will be opened before each test.
+     * <p>
+     * Note that for application tests, by default, the Main View class specified in the application properties will
+     * be used. If it does not exist, the {@link InitialView} will be used instead.
+     *
+     * @param initialView the view to set
+     * @return current instance of extension
+     */
+    public JmixUiTestExtension withInitialView(@Nullable Class<? extends View> initialView) {
+        this.initialView = initialView;
+        return this;
+    }
+
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
         initViewBasePackages(context);
         initAuthentication(context);
+        initInitialView(context);
     }
 
     @Override
@@ -161,6 +186,8 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         setupAuthentication(context);
         setupVaadin(context);
         registerViewBasePackages(context);
+
+        navigateToInitialView(context);
     }
 
     @Override
@@ -234,18 +261,8 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
 
         if (ArrayUtils.isNotEmpty(viewBasePackages)) {
             // Setup custom View configuration
-            result = new ArrayList<>(1);
-
-            AnnotationScanMetadataReaderFactory metadataReaderFactory =
-                    applicationContext.getBean(AnnotationScanMetadataReaderFactory.class);
-
-            ViewControllersConfiguration configuration =
-                    new ViewControllersConfiguration(applicationContext, metadataReaderFactory);
-            applicationContext.getAutowireCapableBeanFactory()
-                    .autowireBean(configuration);
-            configuration.setBasePackages(Arrays.asList(viewBasePackages));
-
-            result.add(configuration);
+            result = new ArrayList<>(2);
+            result.add(createViewControllersConfiguration(applicationContext, Arrays.asList(viewBasePackages)));
         } else {
             // Setup default View configurations
             Collection<ViewControllersConfiguration> configurations =
@@ -255,6 +272,8 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
             result = new ArrayList<>(configurations);
         }
 
+        result.add(createViewControllersConfiguration(applicationContext, List.of(initialView.getPackageName())));
+
         setViewControllersConfigurations(context, result);
 
         List<String> viewPackages = new ArrayList<>();
@@ -262,6 +281,19 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         result.forEach(config -> viewPackages.addAll(config.getBasePackages()));
 
         registerViewRoutes(viewPackages, context);
+    }
+
+    protected ViewControllersConfiguration createViewControllersConfiguration(ApplicationContext applicationContext,
+                                                                              List<String> viewBasePackages) {
+        AnnotationScanMetadataReaderFactory metadataReaderFactory =
+                applicationContext.getBean(AnnotationScanMetadataReaderFactory.class);
+
+        ViewControllersConfiguration configuration =
+                new ViewControllersConfiguration(applicationContext, metadataReaderFactory);
+        applicationContext.getAutowireCapableBeanFactory().autowireBean(configuration);
+        configuration.setBasePackages(viewBasePackages);
+
+        return configuration;
     }
 
     protected void registerViewRoutes(List<String> viewBasePackages, ExtensionContext context) {
@@ -274,7 +306,7 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         List<ViewInfo> viewInfos = applicationContext.getBean(ViewRegistry.class)
                 .getViewInfos().stream()
                 .filter(info -> isClassInPackages(info.getControllerClass().getPackageName(), viewBasePackages))
-                .collect(Collectors.toList());
+                .toList();
 
         for (ViewInfo view : viewInfos) {
             Class<? extends View> controllerClass = view.getControllerClass();
@@ -293,12 +325,44 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
                 routeConfiguration.removeRoute(route.value());
             }
 
-            if (route.layout() == UI.class) {
-                routeConfiguration.setRoute(route.value(), controllerClass);
-            } else {
-                routeConfiguration.setRoute(route.value(), controllerClass, route.layout());
+            routeConfiguration.setRoute(route.value(), controllerClass,
+                    getParentChain(route, getDefaultParentChain(context)));
+        }
+    }
+
+    private void navigateToInitialView(ExtensionContext context) {
+        getApplicationContext(context).getBean(ViewNavigationSupport.class)
+                .navigate(initialView);
+    }
+
+    /* CAUTION! Copied from ViewRegistry#getParentChain() */
+    protected List<Class<? extends RouterLayout>> getParentChain(Route route,
+                                                                 List<Class<? extends RouterLayout>> defaultChain) {
+        Class<? extends RouterLayout> layout = route.layout();
+        if (DefaultMainViewParent.class.isAssignableFrom(layout)) {
+            return defaultChain;
+        }
+
+        // UI is the default route parent, so no need to add it explicitly
+        return UI.class == layout ? Collections.emptyList() : List.of(layout);
+    }
+
+    /* CAUTION! Copied from ViewRegistry#getDefaultParentChain() */
+    @SuppressWarnings("unchecked")
+    protected List<Class<? extends RouterLayout>> getDefaultParentChain(ExtensionContext context) {
+        String mainViewId = getApplicationContext(context).getBean(UiProperties.class)
+                .getMainViewId();
+        Optional<ViewInfo> mainViewInfo = getApplicationContext(context).getBean(ViewRegistry.class)
+                .findViewInfo(mainViewId);
+
+        if (mainViewInfo.isPresent()) {
+            Class<? extends View<?>> controllerClass = mainViewInfo.get().getControllerClass();
+            if (RouterLayout.class.isAssignableFrom(controllerClass)) {
+                return List.of(((Class<? extends RouterLayout>) controllerClass));
             }
         }
+
+        return Collections.emptyList();
     }
 
     protected boolean isClassInPackages(String classPackage, List<String> viewBasePackages) {
@@ -359,6 +423,30 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         }
     }
 
+    @Nullable
+    protected Class<? extends View> getInitialViewFromAnnotation(ExtensionContext context) {
+        Class<? extends View> viewClass = AnnotationSupport.findAnnotation(context.getTestClass(), UiTest.class)
+                .<Class<? extends View>>map(UiTest::initialView)
+                .orElse(null);
+
+        // Return null if default value is returned
+        if (InitialView.class.equals(viewClass)) {
+            return null;
+        }
+
+        if (viewClass != null) {
+            AnnotationSupport.findAnnotation(viewClass, ViewController.class)
+                    .orElseThrow(() -> new IllegalStateException("View must contain "
+                            + ViewController.class.getSimpleName() + " annotation"));
+
+            AnnotationSupport.findAnnotation(viewClass, Route.class)
+                    .orElseThrow(() -> new IllegalStateException("View must contain "
+                            + Route.class.getSimpleName() + " annotation"));
+        }
+
+        return viewClass;
+    }
+
     protected String[] getViewBasePackagesToRegister(ExtensionContext context) {
         String[] viewBasePackages = {};
         if (ArrayUtils.isNotEmpty(this.viewBasePackages)) {
@@ -394,6 +482,18 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         return SpringExtension.getApplicationContext(context);
     }
 
+    protected Class<? extends View> getDefaultInitialViewClass(ExtensionContext context) {
+        String mainViewId = getApplicationContext(context).getBean(UiProperties.class).getMainViewId();
+        if (!Strings.isNullOrEmpty(mainViewId)) {
+            Optional<ViewInfo> viewInfo = getApplicationContext(context).getBean(ViewRegistry.class)
+                    .findViewInfo(mainViewId);
+            if (viewInfo.isPresent()) {
+                return viewInfo.get().getControllerClass();
+            }
+        }
+        return InitialView.class;
+    }
+
     private void initViewBasePackages(ExtensionContext context) {
         if (ArrayUtils.isEmpty(viewBasePackages)) {
             getUiTestAnnotation(context).ifPresent(uiTest -> this.viewBasePackages = uiTest.viewBasePackages());
@@ -407,6 +507,15 @@ public class JmixUiTestExtension implements TestInstancePostProcessor, BeforeEac
         if (uiTestAuthenticator == null) {
             uiTestAuthenticator = getApplicationContext(context).getBeanProvider(UiTestAuthenticator.class)
                     .getIfAvailable();
+        }
+    }
+
+    private void initInitialView(ExtensionContext context) {
+        if (initialView == null) {
+            initialView = getInitialViewFromAnnotation(context);
+        }
+        if (initialView == null) {
+            initialView = getDefaultInitialViewClass(context);
         }
     }
 

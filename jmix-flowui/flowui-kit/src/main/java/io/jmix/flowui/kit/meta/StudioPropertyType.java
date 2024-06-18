@@ -51,14 +51,20 @@ public enum StudioPropertyType {
     COLLECTION_DATA_CONTAINER_REF,
 
     /**
+     * ID of a collection or instance data container
+     */
+    COLLECTION_OR_INSTANCE_DATA_CONTAINER_REF,
+
+    /**
      * ID of a data loader.
      */
     DATA_LOADER_REF,
 
     /**
-     * ID of a data container
+     * ID of an instance data container
      */
     DATA_CONTAINER_REF,
+
 
     /**
      * ID of a datatype.
@@ -89,6 +95,16 @@ public enum StudioPropertyType {
      * FQN of Enum class.
      */
     ENUM_CLASS,
+
+    /**
+     * FQN of UI Component class.
+     */
+    COMPONENT_CLASS,
+
+    /**
+     * FQN of Fragment class.
+     */
+    FRAGMENT_CLASS,
 
     /**
      * Value from a strict list of property options.

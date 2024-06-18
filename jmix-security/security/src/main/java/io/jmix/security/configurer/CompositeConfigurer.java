@@ -16,12 +16,17 @@
 
 package io.jmix.security.configurer;
 
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
+/**
+ * @deprecated use {@link io.jmix.security.util.JmixHttpSecurityUtils}
+ */
+@Deprecated(since = "2.3", forRemoval = true)
 public class CompositeConfigurer extends AbstractHttpConfigurer<CompositeConfigurer, HttpSecurity> {
     private final Collection<AbstractHttpConfigurer<?, HttpSecurity>> configurers = new ArrayList<>();
     private boolean attached;
@@ -30,7 +35,7 @@ public class CompositeConfigurer extends AbstractHttpConfigurer<CompositeConfigu
         configurers.add(configurer);
         if (attached) {
             try {
-                getBuilder().apply(configurer);
+                getBuilder().with(configurer, Customizer.withDefaults());
             } catch (Exception e) {
                 throw new RuntimeException("Error while init security", e);
             }
@@ -42,7 +47,7 @@ public class CompositeConfigurer extends AbstractHttpConfigurer<CompositeConfigu
         if (!attached) {
             try {
                 for (AbstractHttpConfigurer<?, HttpSecurity> configurer : configurers) {
-                    http.apply(configurer);
+                    http.with(configurer, Customizer.withDefaults());
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Error while init security", e);

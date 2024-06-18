@@ -2151,6 +2151,22 @@
         </xs:union>
     </xs:simpleType>
 
+    <xs:simpleType name="twinColumnThemeNames">
+        <xs:union>
+            <xs:simpleType>
+                <xs:restriction base="xs:string"/>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="no-border"/>
+                    <xs:enumeration value="no-row-border"/>
+                    <xs:enumeration value="checkmarks"/>
+                    <xs:enumeration value="no-space-between-actions"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:union>
+    </xs:simpleType>
+
     <!-- Interfaces -->
     <xs:attributeGroup name="hasId">
         <xs:attribute name="id" type="xs:string"/>
@@ -3128,6 +3144,30 @@
         </xs:complexContent>
     </xs:complexType>
 
+    <!-- TwinColumn -->
+    <xs:complexType name="twinColumnComponent">
+        <xs:complexContent>
+            <xs:extension base="validatableBaseFieldComponent">
+                <xs:attribute name="itemsContainer" type="xs:string"/>
+                <xs:attribute name="selectAllButtonsVisible" type="xs:boolean"/>
+                <xs:attribute name="reorderable" type="xs:boolean"/>
+                <xs:attribute name="itemsColumnLabel" type="resourceString"/>
+                <xs:attribute name="selectedItemsColumnLabel" type="resourceString"/>
+                <xs:attribute name="themeNames" type="twinColumnThemeNames"/>
+
+                <xs:attributeGroup ref="hasAriaLabel"/>
+                <xs:attributeGroup ref="hasClassNames"/>
+                <xs:attributeGroup ref="hasDataContainer"/>
+                <xs:attributeGroup ref="hasEnabled"/>
+                <xs:attributeGroup ref="hasHelperText"/>
+                <xs:attributeGroup ref="hasLabel"/>
+                <xs:attributeGroup ref="hasRequired"/>
+                <xs:attributeGroup ref="hasSize"/>
+                <xs:attributeGroup ref="hasValueAndElement"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
     <!-- ActionItem-->
     <xs:complexType name="dropdownActionItemType">
         <xs:choice>
@@ -3682,6 +3722,7 @@
                 <xs:sequence minOccurs="0">
                     <xs:element name="prefix" minOccurs="0" type="prefixOrSuffixComponent"/>
                     <xs:element name="suffix" minOccurs="0" type="prefixOrSuffixComponent"/>
+                    <xs:element name="tab" type="lazyTabComponent"/>
                 </xs:sequence>
 
                 <xs:attribute name="themeNames" type="tabSheetThemeNames"/>
@@ -3700,13 +3741,21 @@
         <xs:attribute name="css" type="xs:string"/>
         <xs:attribute name="flexGrow" type="xs:double"/>
         <xs:attribute name="visible" type="xs:boolean"/>
-        <xs:attribute name="lazy" type="xs:boolean"/>
 
         <xs:attributeGroup ref="requiresId"/>
         <xs:attributeGroup ref="hasLabel"/>
         <xs:attributeGroup ref="hasEnabled"/>
         <xs:attributeGroup ref="hasClassNames"/>
         <xs:attributeGroup ref="hasAriaLabel"/>
+    </xs:complexType>
+
+    <!-- Lazy Tab-->
+    <xs:complexType name="lazyTabComponent">
+        <xs:complexContent>
+            <xs:extension base="tabComponent">
+                <xs:attribute name="lazy" type="xs:boolean"/>
+            </xs:extension>
+        </xs:complexContent>
     </xs:complexType>
 
     <!-- Select-->
@@ -4013,6 +4062,7 @@
                 <xs:attribute name="printMarginColumn" type="xs:integer"/>
                 <xs:attribute name="fontSize" type="xs:string"/>
                 <xs:attribute name="textWrap" type="xs:boolean"/>
+                <xs:attribute name="useSoftTabs" type="xs:boolean"/>
 
                 <xs:attribute name="mode" type="codeEditorMode"/>
                 <xs:attribute name="theme" type="codeEditorTheme"/>
@@ -4149,6 +4199,62 @@
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
+
+    <!-- Generic Component -->
+    <xs:complexType name="genericComponent">
+        <xs:complexContent>
+            <xs:extension base="baseComponent">
+                <xs:all>
+                    <xs:element name="properties" type="genericComponentProperties" minOccurs="0"/>
+                </xs:all>
+
+                <xs:attribute name="class" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="genericComponentProperties">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="property" type="genericComponentProperty"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="genericComponentProperty">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="genericComponentPropertyValueType"/>
+    </xs:complexType>
+
+    <xs:simpleType name="genericComponentPropertyValueType">
+        <xs:union>
+            <xs:simpleType>
+                <xs:restriction base="xs:string"/>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CONTAINER_REF"/>
+                    <xs:enumeration value="LOADER_REF"/>
+                    <xs:enumeration value="ICON"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:union>
+    </xs:simpleType>
+
+    <!-- Fragment -->
+    <xs:complexType name="fragmentComponent">
+        <xs:complexContent>
+            <xs:extension base="baseComponent">
+                <xs:all>
+                    <xs:element name="properties" type="genericComponentProperties" minOccurs="0"/>
+                </xs:all>
+
+                <xs:attribute name="class" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
     <!--    HTML-->
 
     <!-- Html -->
@@ -4489,6 +4595,15 @@
         </xs:complexContent>
     </xs:complexType>
 
+    <!-- Actions -->
+
+    <xs:complexType name="viewActions">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="action" type="viewAction"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
 
     <!-- Facets -->
 
@@ -4733,6 +4848,9 @@
                 <xs:element name="menuFilterField" type="menuFilterFieldComponent"/>
                 <xs:element name="horizontalMenu" type="horizontalMenuComponent"/>
                 <xs:element name="richTextEditor" type="richTextEditorComponent"/>
+                <xs:element name="twinColumn" type="twinColumnComponent"/>
+                <xs:element name="component" type="genericComponent"/>
+                <xs:element name="fragment" type="fragmentComponent"/>
             </xs:choice>
         </xs:sequence>
     </xs:group>
@@ -4755,6 +4873,12 @@
             </xs:choice>
         </xs:sequence>
     </xs:group>
+
+    <xs:complexType name="singleLayoutOrComponentType">
+        <xs:sequence minOccurs="0">
+            <xs:group ref="singleLayoutOrComponent"/>
+        </xs:sequence>
+    </xs:complexType>
 
     <xs:complexType name="rootLayout">
         <xs:complexContent>

@@ -219,10 +219,14 @@ dependencies {
 
         api "io.jmix.search:jmix-search:$freeVersion"
         api "io.jmix.search:jmix-search-starter:$freeVersion"
-        api "io.jmix.search:jmix-search-aws-starter:$freeVersion"
+        //api "io.jmix.search:jmix-search-aws-starter:$freeVersion"
         api "io.jmix.search:jmix-search-flowui:$freeVersion"
         api "io.jmix.search:jmix-search-flowui-kit:$freeVersion"
         api "io.jmix.search:jmix-search-flowui-starter:$freeVersion"
+        api "io.jmix.search:jmix-search-elasticsearch:$freeVersion"
+        api "io.jmix.search:jmix-search-elasticsearch-starter:$freeVersion"
+        api "io.jmix.search:jmix-search-opensearch:$freeVersion"
+        api "io.jmix.search:jmix-search-opensearch-starter:$freeVersion"
 
         api "io.jmix.security:jmix-security:$freeVersion"
         api "io.jmix.security:jmix-security-flowui:$freeVersion"
@@ -233,6 +237,12 @@ dependencies {
 
         api "io.jmix.sessions:jmix-sessions:$freeVersion"
         api "io.jmix.sessions:jmix-sessions-starter:$freeVersion"
+
+        api "io.jmix.superset:jmix-superset:$freeVersion"
+        api "io.jmix.superset:jmix-superset-starter:$freeVersion"
+        api "io.jmix.superset:jmix-superset-flowui:$freeVersion"
+        api "io.jmix.superset:jmix-superset-flowui-kit:$freeVersion"
+        api "io.jmix.superset:jmix-superset-flowui-starter:$freeVersion"
 
         api "io.jmix.templates.studio:jmix-studio-templates:$freeVersion"
 
@@ -389,9 +399,8 @@ dependencies {
         api 'io.vavr:vavr:0.9.3'
         api 'org.jetbrains:annotations:22.0.0'
 
-        api 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.17.3'
-
-        api 'com.hazelcast:hazelcast:5.3.2'
+        api 'org.opensearch.client:opensearch-java:2.10.3'
+        api 'org.opensearch.client:opensearch-rest-client:2.14.0'
     }
 }
 
